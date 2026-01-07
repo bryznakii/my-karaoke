@@ -64,6 +64,24 @@
 </div>
 
 <script>
+
+    // Initialize PeerJS for the Main Player
+const peer = new Peer(); 
+
+peer.on('open', (id) => {
+    // This generates a "Room Code" for your friends to enter
+    document.getElementById('status').innerText = "Room Code: " + id;
+});
+
+peer.on('connection', (conn) => {
+    conn.on('data', (data) => {
+        // When the phone sends a song, add it to queue!
+        if (data.type === 'ADD_SONG') {
+            addToQueue(data.videoId, data.title);
+            alert("New song added by remote: " + data.title);
+        }
+    });
+});
     const API_KEY = 'AIzaSyCMAbMkQnDnQIJaNMZqhG_SyrtGNeYJOME'; 
     let songQueue = [];
     const playerFrame = document.getElementById('videoPlayer');
@@ -134,3 +152,4 @@
 
 </body>
 </html>
+
