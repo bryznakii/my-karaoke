@@ -3,117 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Karaoke - Pro Edition</title>
+    <title>Karaoke Main Screen</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --bg: #0b0e14; --card: #151921; --accent: #e50914; --search: #00d2ff; --text: #ffffff; }
-        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
-        h1 { grid-column: 1 / -1; text-align: center; font-size: 2.5em; letter-spacing: 2px; color: var(--accent); margin-bottom: 10px; }
-        
-        .player-container { background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.9); border: 1px solid #222; aspect-ratio: 16/9; position: relative; }
+        .player-container { background: #000; border-radius: 15px; overflow: hidden; aspect-ratio: 16/9; position: relative; border: 1px solid #222; }
         iframe { width: 100%; height: 100%; border: none; }
-
-        .main-col { display: flex; flex-direction: column; gap: 20px; }
-        .section { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #222; }
-        .flex-row { display: flex; gap: 10px; }
-        
-        input { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #333; background: #000; color: white; font-size: 16px; outline: none; }
-        button { padding: 12px 25px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; color: white; transition: 0.3s; }
-        .btn-search { background: var(--search); box-shadow: 0 0 15px rgba(0,210,255,0.3); }
-        .btn-skip { background: #333; width: 100%; margin-top: 15px; }
-        button:hover { transform: translateY(-2px); opacity: 0.9; }
-
-        #resultsList { list-style: none; padding: 0; margin-top: 15px; max-height: 400px; overflow-y: auto; }
-        .result-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; border-radius: 8px; }
-        .result-item:hover { background: #1e2530; }
-        .result-item img { border-radius: 6px; width: 100px; }
-
-        .side-col { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #222; }
-        .queue-item { padding: 12px; background: #0b0e14; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--accent); font-size: 14px; }
-        .empty-msg { color: #555; text-align: center; padding: 20px; font-style: italic; }
+        .side-col { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #222; }
+        #room-id-display { background: #000; padding: 10px; border-radius: 8px; color: var(--search); font-weight: bold; margin-bottom: 10px; text-align: center; border: 1px solid var(--search); }
+        .queue-item { padding: 10px; background: #0b0e14; margin-bottom: 5px; border-left: 4px solid var(--accent); font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>KARAOKE PRO LIVE</h1>
+    <div style="grid-column: 1/-1; text-align: center;">
+        <h1>KARAOKE MAIN SCREEN</h1>
+        <div id="room-id-display">Generating Room Code...</div>
+    </div>
     
     <div class="main-col">
-        <div class="player-container" id="player-box">
-            <iframe id="videoPlayer" src="https://www.youtube.com/embed/L_jWHffIx5E?autoplay=1&rel=0&origin=https://bryznakii.github.io" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        </div>
-
-        <div class="section">
-            <div class="flex-row">
-                <input type="text" id="searchInput" placeholder="Search song title...">
-                <button class="btn-search" onclick="searchYouTube()">SEARCH</button>
-            </div>
-            <ul id="resultsList">
-                <li class="empty-msg">Results will only show embeddable videos...</li>
-            </ul>
+        <div class="player-container">
+            <iframe id="videoPlayer" src="https://www.youtube.com/embed/L_jWHffIx5E?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
     </div>
 
     <div class="side-col">
-        <h3 style="margin-top:0; color: var(--search);">UP NEXT</h3>
-        <ul id="queueList">
-            <li class="empty-msg">Queue is empty</li>
-        </ul>
-        <button class="btn-skip" onclick="playNext()">SKIP SONG</button>
+        <h3>UP NEXT</h3>
+        <ul id="queueList" style="list-style:none; padding:0;"><li style="color:#555">Queue is empty</li></ul>
+        <button onclick="playNext()" style="width:100%; padding:10px; background:#333; color:white; border:none; border-radius:5px; cursor:pointer;">SKIP SONG</button>
     </div>
 </div>
 
 <script>
-
-    // Initialize PeerJS for the Main Player
-const peer = new Peer(); 
-
-peer.on('open', (id) => {
-    // This generates a "Room Code" for your friends to enter
-    document.getElementById('status').innerText = "Room Code: " + id;
-});
-
-peer.on('connection', (conn) => {
-    conn.on('data', (data) => {
-        // When the phone sends a song, add it to queue!
-        if (data.type === 'ADD_SONG') {
-            addToQueue(data.videoId, data.title);
-            alert("New song added by remote: " + data.title);
-        }
-    });
-});
-    const API_KEY = 'AIzaSyCMAbMkQnDnQIJaNMZqhG_SyrtGNeYJOME'; 
+    const API_KEY = 'AIzaSyCMAbMkQnDnQIJaNMZqhG_SyrtGNeYJOME';
     let songQueue = [];
     const playerFrame = document.getElementById('videoPlayer');
 
-    async function searchYouTube() {
-        const query = document.getElementById('searchInput').value;
-        if (!query) return;
+    // PEERJS SETUP
+    const peer = new Peer(); 
+    peer.on('open', (id) => {
+        document.getElementById('room-id-display').innerText = "ROOM CODE: " + id;
+    });
 
-        // Note the added 'videoEmbeddable=true' parameter below!
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=${encodeURIComponent(query)}+karaoke&type=video&videoEmbeddable=true&key=${API_KEY}`;
-
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-            displayResults(data.items);
-        } catch (err) {
-            alert("API Error: " + err.message);
-        }
-    }
-
-    function displayResults(items) {
-        const list = document.getElementById('resultsList');
-        list.innerHTML = "";
-        items.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'result-item';
-            li.innerHTML = `<img src="${item.snippet.thumbnails.default.url}"><span>${item.snippet.title}</span>`;
-            li.onclick = () => addToQueue(item.id.videoId, item.snippet.title);
-            list.appendChild(li);
+    peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+            if (data.type === 'ADD_SONG') {
+                addToQueue(data.id, data.title);
+            }
         });
-    }
+    });
 
     function addToQueue(id, title) {
         if (playerFrame.src.includes('L_jWHffIx5E') && songQueue.length === 0) {
@@ -121,12 +62,10 @@ peer.on('connection', (conn) => {
         } else {
             songQueue.push({id, title});
             updateQueueUI();
-            alert("Added to Queue!");
         }
     }
 
     function loadVideo(id) {
-        // Updated origin to match your GitHub Pages URL
         playerFrame.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&origin=https://bryznakii.github.io`;
     }
 
@@ -135,21 +74,14 @@ peer.on('connection', (conn) => {
             const next = songQueue.shift();
             loadVideo(next.id);
             updateQueueUI();
-        } else {
-            alert("No more songs in queue.");
         }
     }
 
     function updateQueueUI() {
         const list = document.getElementById('queueList');
-        if (songQueue.length === 0) {
-            list.innerHTML = '<li class="empty-msg">Queue is empty</li>';
-            return;
-        }
+        if (songQueue.length === 0) { list.innerHTML = '<li>Queue is empty</li>'; return; }
         list.innerHTML = songQueue.map((s, i) => `<li class="queue-item"><b>${i+1}.</b> ${s.title}</li>`).join('');
     }
 </script>
-
 </body>
 </html>
-
