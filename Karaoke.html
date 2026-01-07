@@ -11,12 +11,10 @@
         .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
         h1 { grid-column: 1 / -1; text-align: center; color: var(--accent); margin-bottom: 5px; }
         #room-id-display { background: #000; padding: 15px; border-radius: 12px; color: var(--search); font-weight: bold; margin-bottom: 20px; text-align: center; border: 2px solid var(--search); font-size: 1.2em; }
-        .player-container { background: #000; border-radius: 15px; overflow: hidden; aspect-ratio: 16/9; position: relative; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        .player-container { background: #000; border-radius: 15px; overflow: hidden; aspect-ratio: 16/9; position: relative; border: 1px solid #333; }
         iframe { width: 100%; height: 100%; border: none; }
         .side-col { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #333; }
         .queue-item { padding: 12px; background: #0b0e14; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid var(--accent); font-size: 14px; }
-        .btn-skip { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .btn-skip:hover { background: #444; }
     </style>
 </head>
 <body>
@@ -24,19 +22,17 @@
 <div class="container">
     <div style="grid-column: 1/-1;">
         <h1>🎤 KARAOKE LIVE PLAYER</h1>
-        <div id="room-id-display">Connecting to Host...</div>
+        <div id="room-id-display">Connecting to Network...</div>
     </div>
-    
     <div class="main-col">
         <div class="player-container">
             <iframe id="videoPlayer" src="https://www.youtube.com/embed/L_jWHffIx5E?autoplay=1&enablejsapi=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
     </div>
-
     <div class="side-col">
         <h3 style="color: var(--search); margin-top: 0;">UP NEXT</h3>
         <ul id="queueList" style="list-style:none; padding:0;"><li style="color:#555">Queue is empty</li></ul>
-        <button class="btn-skip" onclick="playNext()">SKIP CURRENT SONG</button>
+        <button onclick="playNext()" style="width:100%; padding:15px; background:#333; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">SKIP SONG</button>
     </div>
 </div>
 
@@ -45,35 +41,40 @@
     let songQueue = [];
     const playerFrame = document.getElementById('videoPlayer');
 
-    // 1. PeerJS Setup with Custom ID
-    // Change 'karaoke-party-77' to something unique if it's already taken
-    const peer = new Peer('042520'); 
+    // Setup Peer with an ID that is likely unique
+    const peer = new Peer('bry-karaoke-unique-99'); 
 
     peer.on('open', (id) => {
         document.getElementById('room-id-display').innerText = "ROOM CODE: " + id;
     });
 
+    peer.on('error', (err) => {
+        if(err.type === 'unavailable-id') {
+            alert("ID is taken! Change the ID in the code to something else.");
+        } else {
+            console.error(err);
+        }
+    });
+
     peer.on('connection', (conn) => {
         conn.on('data', (data) => {
             if (data.type === 'ADD_SONG') {
-                addToQueue(data.id, data.title);
+                addToQueue(data.id, data.title, data.singer);
             }
             if (data.type === 'SET_VOLUME') {
                 playerFrame.contentWindow.postMessage(JSON.stringify({
-                    event: 'command',
-                    func: 'setVolume',
-                    args: [data.value]
+                    event: 'command', func: 'setVolume', args: [data.value]
                 }), '*');
             }
         });
     });
 
-    // 2. Player Logic
-    function addToQueue(id, title) {
+    function addToQueue(id, title, singer) {
+        const fullTitle = singer ? `${title} (Singer: ${singer})` : title;
         if (playerFrame.src.includes('L_jWHffIx5E') && songQueue.length === 0) {
             loadVideo(id);
         } else {
-            songQueue.push({id, title});
+            songQueue.push({id, title: fullTitle});
             updateQueueUI();
         }
     }
@@ -98,4 +99,3 @@
 </script>
 </body>
 </html>
-
